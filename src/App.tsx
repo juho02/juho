@@ -193,7 +193,7 @@ export default function App() {
       });
 
       // Template Header Row
-      const headers = ["ID", "특허 등록 명칭", "구분", "권리", "출원일", "출원번호", "등록일", "등록번호", "현재상태", "발명자", "출원인", "비고"];
+      const headers = ["내용", "특허 등록 명칭", "구분", "권리", "출원일", "출원번호", "등록일", "등록번호", "현재상태", "발명자", "출원인", "비고"];
       const headerRow = contentSheet.getRow(nextContentRow);
       headers.forEach((h, i) => {
         const cell = headerRow.getCell(i + 2);
@@ -207,7 +207,7 @@ export default function App() {
 
       // Data Row
       const dataRow = contentSheet.getRow(nextContentRow + 1);
-      const dataValues = [result.id, result.title, result.category, result.rightType, result.filingDate, result.applicationNumber, result.registrationDate, result.registrationNumber, result.status, result.inventor, result.applicant, result.note];
+      const dataValues = [newMgmtNum, result.title, result.category, result.rightType, result.filingDate, result.applicationNumber, result.registrationDate, result.registrationNumber, result.status, result.inventor, result.applicant, result.note];
       dataValues.forEach((v, i) => {
         const cell = dataRow.getCell(i + 2);
         cell.value = v;
