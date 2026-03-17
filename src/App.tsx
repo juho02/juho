@@ -393,10 +393,10 @@ export default function App() {
       }
       setLoadingImages(false);
 
-      // Stage 2: Full Patent Extraction using Gemini Pro
+      // Stage 2: Full Patent Extraction using Gemini Flash
       setLoadingDetails(true);
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: [
           {
             parts: [
