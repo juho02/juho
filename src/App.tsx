@@ -243,26 +243,14 @@ export default function App() {
       let currentRow = nextContentRow + 3;
       
       if (pages.length > 0) {
-        // Drawing Header
-        const imageHeaderRow = contentSheet.getRow(currentRow);
-        const imageLabelCell = imageHeaderRow.getCell(2);
-        imageLabelCell.value = `도면 (${pages.length}장)`;
+        // Drawing Content (Image Area)
+        const imageContentRow = contentSheet.getRow(currentRow);
+        const imageLabelCell = imageContentRow.getCell(2);
+        imageLabelCell.value = "이미지";
         imageLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } };
         imageLabelCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         imageLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
         imageLabelCell.font = { bold: true, size: 9 };
-
-        contentSheet.mergeCells(currentRow, 3, currentRow, 13);
-        for (let j = 3; j <= 13; j++) {
-          imageHeaderRow.getCell(j).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-        }
-        imageHeaderRow.height = 20;
-        currentRow++;
-
-        // Drawing Content (Image Area)
-        const imageContentRow = contentSheet.getRow(currentRow);
-        const emptyLabelCell = imageContentRow.getCell(2);
-        emptyLabelCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
         
         contentSheet.mergeCells(currentRow, 3, currentRow, 13);
         for (let j = 3; j <= 13; j++) {
