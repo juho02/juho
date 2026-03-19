@@ -115,6 +115,7 @@ export default function App() {
 
     try {
       const workbook = new ExcelJS.Workbook();
+      const domesticType = result.applicationNumber.includes("PCT") ? "PCT" : "내국";
       
       if (targetExcel) {
         const arrayBuffer = await targetExcel.arrayBuffer();
@@ -129,6 +130,8 @@ export default function App() {
         const headerRow = listSheet.getRow(1);
         headerRow.getCell(4).value = "관리번호";
         headerRow.getCell(5).value = "특허 등록 명칭";
+        headerRow.getCell(6).value = "구분1";
+        headerRow.getCell(7).value = "구분2";
         headerRow.getCell(8).value = "출원일";
         headerRow.getCell(9).value = "출원번호";
         headerRow.getCell(13).value = "발명자";
@@ -172,6 +175,8 @@ export default function App() {
 
       listRow.getCell(4).value = newMgmtNum;
       listRow.getCell(5).value = result.title;
+      listRow.getCell(6).value = domesticType;
+      listRow.getCell(7).value = "특허";
       listRow.getCell(8).value = result.filingDate;
       listRow.getCell(9).value = result.applicationNumber;
       listRow.getCell(13).value = result.inventor;
@@ -188,18 +193,35 @@ export default function App() {
       // Find the next available block for "특허 내용"
       // Each block is roughly 4 rows + spacing
       let nextContentRow = 1;
+      let lastCounter = 0;
       contentSheet.eachRow((row, rowNumber) => {
         if (rowNumber >= nextContentRow) nextContentRow = rowNumber + 2;
+        
+        // Find the last integer counter in column B (index 2)
+        const cellValue = row.getCell(2).value;
+        if (typeof cellValue === 'number') {
+          lastCounter = Math.max(lastCounter, cellValue);
+        } else if (typeof cellValue === 'string' && /^\d+$/.test(cellValue)) {
+          lastCounter = Math.max(lastCounter, parseInt(cellValue, 10));
+        }
       });
+      const nextCounter = lastCounter + 1;
+      const cleanValue = (v: any) => (v === null || v === undefined || String(v).toLowerCase() === "null") ? "" : v;
 
-      // Template Header Row
-      const headers = ["내용", "특허 등록 명칭", "구분", "권리", "출원일", "출원번호", "등록일", "등록번호", "현재상태", "발명자", "출원인", "비고"];
+      // Re-aligning headers and data values to be sure
+      const headerLabels = [nextCounter, "특허 등록 명칭", "구분", "권리", "출원일", "출원번호", "등록일", "등록번호", "현재상태", "발명자", "출원인", "비고"];
       const headerRow = contentSheet.getRow(nextContentRow);
-      headers.forEach((h, i) => {
+      headerLabels.forEach((h, i) => {
         const cell = headerRow.getCell(i + 2);
         cell.value = h;
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } };
-        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        
+        // Border logic for outer edges
+        const border: any = { top: { style: 'medium' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        if (i === 0) border.left = { style: 'medium' }; // Left of block
+        if (i === headerLabels.length - 1) border.right = { style: 'medium' }; // Right of block
+        
+        cell.border = border;
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.font = { bold: true, size: 9 };
       });
@@ -207,11 +229,29 @@ export default function App() {
 
       // Data Row
       const dataRow = contentSheet.getRow(nextContentRow + 1);
-      const dataValues = [newMgmtNum, result.title, result.category, result.rightType, result.filingDate, result.applicationNumber, result.registrationDate, result.registrationNumber, result.status, result.inventor, result.applicant, result.note];
+      const dataValues = [
+        newMgmtNum, 
+        cleanValue(result.title), 
+        domesticType, 
+        cleanValue(result.rightType), 
+        cleanValue(result.filingDate), 
+        cleanValue(result.applicationNumber), 
+        cleanValue(result.registrationDate), 
+        cleanValue(result.registrationNumber), 
+        cleanValue(result.status), 
+        cleanValue(result.inventor), 
+        cleanValue(result.applicant), 
+        cleanValue(result.note)
+      ];
       dataValues.forEach((v, i) => {
         const cell = dataRow.getCell(i + 2);
         cell.value = v;
-        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        
+        const border: any = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        if (i === 0) border.left = { style: 'medium' };
+        if (i === dataValues.length - 1) border.right = { style: 'medium' };
+        
+        cell.border = border;
         cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         cell.font = { size: 9 };
       });
@@ -222,15 +262,17 @@ export default function App() {
       const summaryLabelCell = summaryRow.getCell(2);
       summaryLabelCell.value = "요약";
       summaryLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } };
-      summaryLabelCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      summaryLabelCell.border = { top: { style: 'thin' }, left: { style: 'medium' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
       summaryLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
       summaryLabelCell.font = { bold: true, size: 9 };
 
       const summaryTextCell = summaryRow.getCell(3);
-      summaryTextCell.value = result.summary;
+      summaryTextCell.value = cleanValue(result.summary);
       contentSheet.mergeCells(nextContentRow + 2, 3, nextContentRow + 2, 13);
       for (let i = 3; i <= 13; i++) {
-        summaryRow.getCell(i).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        const border: any = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        if (i === 13) border.right = { style: 'medium' };
+        summaryRow.getCell(i).border = border;
       }
       summaryTextCell.alignment = { vertical: 'middle', wrapText: true };
       summaryTextCell.font = { size: 9 };
@@ -242,19 +284,20 @@ export default function App() {
         : await getPdfPages(file, result.drawingPages);
       let currentRow = nextContentRow + 3;
       
-      if (pages.length > 0) {
-        // Drawing Content (Image Area)
+      if (pages.length > 0 || true) { // Always show image row to maintain border consistency
         const imageContentRow = contentSheet.getRow(currentRow);
         const imageLabelCell = imageContentRow.getCell(2);
-        imageLabelCell.value = "이미지";
+        imageLabelCell.value = pages.length > 0 ? "이미지" : "도면 없음";
         imageLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } };
-        imageLabelCell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        imageLabelCell.border = { top: { style: 'thin' }, left: { style: 'medium' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
         imageLabelCell.alignment = { horizontal: 'center', vertical: 'middle' };
         imageLabelCell.font = { bold: true, size: 9 };
         
         contentSheet.mergeCells(currentRow, 3, currentRow, 13);
         for (let j = 3; j <= 13; j++) {
-          imageContentRow.getCell(j).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          const border: any = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
+          if (j === 13) border.right = { style: 'medium' };
+          imageContentRow.getCell(j).border = border;
         }
         imageContentRow.height = 340;
 
