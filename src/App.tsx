@@ -23,6 +23,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 interface PatentInfo {
   id: string;
   title: string;
+  shortName: string; // 추가: 특허 명칭을 짧게 요약한 가칭
   category: string;
   rightType: string;
   filingDate: string;
@@ -128,6 +129,8 @@ export default function App() {
       if (!listSheet) {
         listSheet = workbook.addWorksheet(listSheetName);
         const headerRow = listSheet.getRow(1);
+        headerRow.getCell(1).value = "No"; // A열: 자동 넘버링
+        headerRow.getCell(2).value = "가칭"; // B열: 짧은 명칭
         headerRow.getCell(4).value = "관리번호";
         headerRow.getCell(5).value = "특허 등록 명칭";
         headerRow.getCell(6).value = "구분1";
@@ -147,7 +150,19 @@ export default function App() {
       const nextListRowNumber = lastListRow + 1;
       const listRow = listSheet.getRow(nextListRowNumber);
 
-      // 관리번호 업카운트 로직 (D열 = 4번째 열)
+      // 1. A열 자동 넘버링 (업카운트)
+      let lastNo = 0;
+      if (lastListRow > 1) {
+        const lastNoValue = listSheet.getRow(lastListRow).getCell(1).value;
+        if (typeof lastNoValue === 'number') {
+          lastNo = lastNoValue;
+        } else if (typeof lastNoValue === 'string' && !isNaN(parseInt(lastNoValue))) {
+          lastNo = parseInt(lastNoValue);
+        }
+      }
+      const newNo = lastNo + 1;
+
+      // 관리번호 업카운트 로직 (D열 = 4번째 열) - 기존 로직 유지
       let prevMgmtNum = "";
       if (lastListRow > 1) {
         const prevCell = listSheet.getRow(lastListRow).getCell(4).value;
@@ -173,6 +188,8 @@ export default function App() {
         }
       }
 
+      listRow.getCell(1).value = newNo; // A열: 자동 넘버링
+      listRow.getCell(2).value = result.shortName; // B열: 가칭
       listRow.getCell(4).value = newMgmtNum;
       listRow.getCell(5).value = result.title;
       listRow.getCell(6).value = domesticType;
@@ -444,18 +461,19 @@ export default function App() {
                 추출 항목:
                 1. ID (id)
                 2. 발명의 명칭 (title)
-                3. 구분 (category)
-                4. 권리 (rightType)
-                5. 출원 일자 (filingDate)
-                6. 출원 번호 (applicationNumber)
-                7. 등록 일자 (registrationDate)
-                8. 등록 번호 (registrationNumber)
-                9. 현재 상태 (status)
-                10. 발명자 성명 (inventor)
-                11. 출원인 명칭 (applicant)
-                12. 비고 (note)
-                13. 문서 요약 (summary)
-                14. 도면이 포함된 모든 페이지 번호들 (drawingPages - 숫자 배열, 1부터 시작).`,
+                3. 발명의 명칭을 보고 생성한 10자 이내의 짧은 가칭 (shortName) - 예: "스마트 휠체어", "AI 진단 시스템"
+                4. 구분 (category)
+                5. 권리 (rightType)
+                6. 출원 일자 (filingDate)
+                7. 출원 번호 (applicationNumber)
+                8. 등록 일자 (registrationDate)
+                9. 등록 번호 (registrationNumber)
+                10. 현재 상태 (status)
+                11. 발명자 성명 (inventor)
+                12. 출원인 명칭 (applicant)
+                13. 비고 (note)
+                14. 문서 요약 (summary)
+                15. 도면이 포함된 모든 페이지 번호들 (drawingPages - 숫자 배열, 1부터 시작).`,
               },
             ],
           },
@@ -467,6 +485,7 @@ export default function App() {
             properties: {
               id: { type: Type.STRING },
               title: { type: Type.STRING },
+              shortName: { type: Type.STRING, description: "10자 이내의 짧은 특허 가칭" },
               category: { type: Type.STRING },
               rightType: { type: Type.STRING },
               filingDate: { type: Type.STRING },
@@ -480,7 +499,7 @@ export default function App() {
               summary: { type: Type.STRING },
               drawingPages: { type: Type.ARRAY, items: { type: Type.INTEGER } },
             },
-            required: ["id", "title", "filingDate", "applicationNumber", "inventor", "applicant", "summary", "drawingPages"],
+            required: ["id", "title", "shortName", "filingDate", "applicationNumber", "inventor", "applicant", "summary", "drawingPages"],
           },
         },
       });
@@ -722,6 +741,7 @@ export default function App() {
                         <div className="border-b border-[#141414]/5 pb-4">
                           <label className="text-[10px] uppercase tracking-widest font-bold opacity-40 block mb-1">발명의 명칭</label>
                           <p className="text-xl font-serif italic">{result.title}</p>
+                          <p className="text-xs text-emerald-600 font-medium mt-1">가칭: {result.shortName}</p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
